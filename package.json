@@ -7,7 +7,9 @@
     "build": "snowpack build",
     "test": "web-test-runner \"src/**/*.test.jsx\"",
     "format": "prettier --write \"src/**/*.{js,jsx}\"",
-    "lint": "prettier --check \"src/**/*.{js,jsx}\""
+    "lint": "prettier --check \"src/**/*.{js,jsx}\"",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "@ffmpeg/core": "^0.8.3",
@@ -22,6 +24,7 @@
     "@testing-library/react": "^11.0.0",
     "@web/test-runner": "^0.9.7",
     "chai": "^4.2.0",
+    "gh-pages": "^3.2.3",
     "prettier": "^2.0.5",
     "snowpack": "^2.17.1"
   }
