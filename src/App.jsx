@@ -4,63 +4,72 @@ import './App.css';
 import { createFFmpeg, fetchFile } from '@ffmpeg/ffmpeg';
 const ffmpeg = createFFmpeg({ log: true });
 
+import logo from './logo.png'
+
 function App() {
   const [ready, setReady] = useState(false);
   const [importedVideo, setVideo] = useState();
-  const [cutedVideo, setCutedVideo] = useState();
+  const [cutedVideo, setCutedVideo] = useState(undefined);
   const [logoVideo, setLogoVideo] = useState();
   const [finalVideo, setFinalVideo] = useState();
+  const [clipping, setClipping] = useState(false) 
 
   const load = async () => {
     await ffmpeg.load();
     setReady(true);
   }
 
+  useEffect(async()=>{
+    await putLogoVideo(cutedVideo);
+  },[cutedVideo])
+
   useEffect(() => {
     load();
   }, [])
 
   const cutVideo = async () => {
-    console.log('-----> CUT VIDEO')
-    console.log(importedVideo)
-    // Write the file to memory 
-    ffmpeg.FS('writeFile', 'importedVideo.mp4', await fetchFile(importedVideo));
-
-    // Run the FFMpeg command
-    // -i: import
-    // -t: time duration
-    // -ss: seach for position in seconds, can be also e [hh:mm:ss.xxx]
-    // -f: format
-
-    await ffmpeg.run(
-      '-i', 'importedVideo.mp4',
-      '-t', '2.5',
-      '-ss', '10.0',
-      '-f', 'mp4',
-      'cutedVideo.mp4'
-    );
-    const data = ffmpeg.FS('readFile', 'cutedVideo.mp4');
-    const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-    setCutedVideo(url);
-    setFinalVideo(url);
-    await putLogoVideo();
+    setClipping(true)
+    try {
+      ffmpeg.FS('writeFile', 'importedVideo.mp4', await fetchFile(importedVideo));
+      await ffmpeg.run(
+        '-i', 'importedVideo.mp4',
+        '-t', '2.5',
+        '-ss', '10.0',
+        '-f', 'mp4',
+        'cutedVideo.mp4'
+      );
+      const data = ffmpeg.FS('readFile', 'cutedVideo.mp4');
+      const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+      setCutedVideo(url);
+    } catch (error) {
+      console.log('!!!!!!!!!!!! Deu ruim no corte !!!!!!!!!!!!')
+      console.log(error)
+      console.log('!!!!!!!!!!!! Deu ruim no corte !!!!!!!!!!!!')
+      setClipping(false)
+    }
   }
 
-  const putLogoVideo = async () => {
-    console.log('-----> PUT LOGO VIDEO')
-    console.log(cutedVideo);
-
-    await ffmpeg.FS('writeFile', 'cutedVideo.mp4', fetchFile(cutedVideo));
-
-    await ffmpeg.run(
-      '-i', 'cutedVideo.mp4',
-      '--filter_complex', "[0:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1,setsar=1,fps=30000/1001,format=yuv420p[intro];[1:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1,setsar=1,fps=30000/1001,format=yuv420p[video];[2]scale=250:-1[logo];[0:a]aformat=sample_rates=48000:channel_layouts=stereo[introa];[1:a]aformat=sample_rates=48000:channel_layouts=stereo[videoa];[intro][introa][video][videoa]concat=n=2:v=1:a=1[vid][a];[vid][logo]overlay=W-w-200:H-h-700[v]",
-      'cutedVideo.mp4'
-    );
-    const data = ffmpeg.FS('readFile', 'cutedVideo.mp4');
-    const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-    setLogoVideo(url);
-    setFinalVideo(url);
+  const putLogoVideo = async (video) => {
+    try {
+      ffmpeg.FS('writeFile', 'cuttedVideo.mp4', await fetchFile(video));
+      ffmpeg.FS('writeFile', 'logo.png', await fetchFile(logo));
+      await ffmpeg.run('-y',
+        '-i', 'cuttedVideo.mp4',
+        '-i','logo.png',
+        '-filter_complex', "overlay=10:10",
+        'logoVideo.mp4'
+      );
+      const data = ffmpeg.FS('readFile', 'logoVideo.mp4');
+      const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+      setLogoVideo(url);
+      setFinalVideo(url);
+    } catch (error) {
+      console.log('!!!!!!!!!!!! Deu ruim na marca d`agua !!!!!!!!!!!!')
+      console.log(error)
+      console.log('!!!!!!!!!!!! Deu ruim na marca d`agua !!!!!!!!!!!!')
+    } finally {
+      setClipping(false)
+    }
   }
 
   return ready ? (
@@ -73,6 +82,7 @@ function App() {
       <input type="file" onChange={(e) => setVideo(e.target.files?.item(0))} />
       <h3>Result</h3>
       <button onClick={cutVideo}>Faz a braba! </button>
+      { clipping && <img src={"https://i.pinimg.com/originals/83/96/96/839696a3d8aa1e2321756d00f38a2af7.gif"}></img>}
       {finalVideo &&
         <>
           <video controls width="400" src={finalVideo} />
