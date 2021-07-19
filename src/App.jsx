@@ -42,9 +42,6 @@ function App() {
       const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
       setCutedVideo(url);
     } catch (error) {
-      console.log('!!!!!!!!!!!! Deu ruim no corte !!!!!!!!!!!!')
-      console.log(error)
-      console.log('!!!!!!!!!!!! Deu ruim no corte !!!!!!!!!!!!')
       setClipping(false)
     }
   }
@@ -56,7 +53,7 @@ function App() {
       await ffmpeg.run('-y',
         '-i', 'cuttedVideo.mp4',
         '-i','logo.png',
-        '-filter_complex', "overlay=10:10",
+        '-filter_complex', "overlay=100:100",
         'logoVideo.mp4'
       );
       const data = ffmpeg.FS('readFile', 'logoVideo.mp4');
@@ -64,9 +61,7 @@ function App() {
       setLogoVideo(url);
       setFinalVideo(url);
     } catch (error) {
-      console.log('!!!!!!!!!!!! Deu ruim na marca d`agua !!!!!!!!!!!!')
       console.log(error)
-      console.log('!!!!!!!!!!!! Deu ruim na marca d`agua !!!!!!!!!!!!')
     } finally {
       setClipping(false)
     }
